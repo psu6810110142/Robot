@@ -1,0 +1,423 @@
+#!/usr/bin/env python3
+
+import time
+from ev3dev2.motor import *
+from ev3dev2.sensor import *
+from ev3dev2.sensor.lego import *
+from ev3dev2.sound import Sound
+
+# --- Setup ---
+tank_drive = MoveTank(OUTPUT_A, OUTPUT_B)
+sensor_left = ColorSensor(INPUT_1)
+sensor_right = ColorSensor(INPUT_2)
+sensorB_left = ColorSensor(INPUT_3)
+sensorB_right = ColorSensor(INPUT_4)
+my_sound = Sound()
+
+BLACK = 1 
+GREEN = 3 
+
+# ==========================================
+# 1. HELPER FUNCTIONS (ฟังก์ชั่นตัวช่วยใช้บ่อยๆ)
+# ==========================================
+
+def align_back():
+    """ 
+    ถอยหลังปรับระนาบ + หยุดรอให้นิ่ง (Stabilize) 
+    เพื่อให้แน่ใจว่าหุ่นตรงเป๊ะก่อนไปต่อ 
+    """
+    # 1. เริ่มถอยช้าๆ
+    tank_drive.on(-15, -15)
+    left_done = False
+    right_done = False
+    # 2. ลูปรอจนกว่าทั้ง 2 ข้างจะเจอเส้น
+    while not (left_done and right_done):
+        # ถ้าซ้ายเจอเส้น -> หยุดล้อซ้าย
+        if sensorB_left.color == BLACK: 
+            left_done = True
+        # ถ้าขวาเจอเส้น -> หยุดล้อขวา
+        if sensorB_right.color == BLACK: 
+            right_done = True
+        # คำนวณความเร็ว (ถ้าข้างไหนเจอแล้วให้เป็น 0 เพื่อหยุดรอนิ่งๆ)
+        p_l = -15 if not left_done else 0
+        p_r = -15 if not right_done else 0
+        tank_drive.on(p_l, p_r)
+    # 3. เจอครบแล้ว สั่งเบรกทันที!
+    tank_drive.off(brake=True)
+    time.sleep(0.5) # หยุดแช่ไว้ 0.5 วินาที ให้แรงเฉื่อยหมดไป
+    # -------------------
+    print("ตั้งลำเสร็จเรียบร้อย พร้อมไปต่อ!")
+
+def standard_turn_left():
+    """ การเลี้ยวปกติ: ถอย -> เลี้ยวซ้าย -> เช็คเส้นหลัง -> เดินหน้า """
+    print("Turn Left...")
+    tank_drive.on_for_seconds(-30, -30, 1) # 1. ถอยหนีเส้น
+    tank_drive.on_for_seconds(-30, 30, 1.0)  # 2. เลี้ยวซ้าย (ปรับเวลาตรงนี้)
+    align_back()                             # 3. ถอยเช็คเส้นหลัง
+    tank_drive.on_for_seconds(35, 35, 0.3)   # 4. ออกตัว
+
+def standard_turn_right():
+    """ การเลี้ยวปกติ: ถอย -> เลี้ยวขวา -> เช็คเส้นหลัง -> เดินหน้า """
+    print("Turn Right")
+    tank_drive.on_for_seconds(-30, -30, 1) 
+    tank_drive.on_for_seconds(30, -30, 1.0)  # เลี้ยวขวา
+    align_back()
+    tank_drive.on_for_seconds(35, 35, 0.3)
+    
+def drive_until_line():
+    """ เดินหน้าจนกว่าจะเจอเส้นดำ (ต้องมีฟังก์ชันนี้!) """
+    print("Walking to line...")
+    tank_drive.on(35, 35)
+    while True:
+        if sensor_left.color == BLACK or sensor_right.color == BLACK:
+            tank_drive.off(brake=True)
+            break    
+    
+# ==========================================
+# NEW HELPER FUNCTION: เดินหน้า + แก้ทาง
+# ==========================================    
+def drive_with_correction():
+    """ 
+    ฟังก์ชันเดินหน้าปกติ แต่ถ้าเซนเซอร์ข้างไหนเหยียบเส้นดำ 
+    จะทำการเลี้ยวแก้ทิศทางให้กลับมาตรง (Line Follower Logic)
+    """
+    # เช็คว่าข้างไหนเหยียบดำบ้าง
+    left_on_line = (sensor_left.color == BLACK)
+    right_on_line = (sensor_right.color == BLACK)
+
+    if left_on_line:
+        # เอียงซ้าย (ซ้ายเหยียบดำ) -> แก้โดยเลี้ยวขวา
+        # (ล้อซ้ายแรง 40, ล้อขวาเบา 20)
+        tank_drive.on(40, 20)
+        
+    elif right_on_line:
+        # เอียงขวา (ขวาเหยียบดำ) -> แก้โดยเลี้ยวซ้าย
+        # (ล้อซ้ายเบา 20, ล้อขวาแรง 40)
+        tank_drive.on(20, 40)
+        
+    else:
+        # ไม่เหยียบเส้นเลย (ตรงทาง) -> เดินหน้าเต็มกำลัง
+        tank_drive.on(40, 40)
+
+# ==========================================
+# 2. MISSION LOGIC
+# ==========================================
+
+def run_mission_1_logic():
+    """ ชุดคำสั่งเมื่อเจอสีเขียวจุดที่ 1 """
+    print("Executing Mission 1...")
+    tank_drive.off(brake=True)
+    
+    # ส่งเสียง
+    my_sound.beep()
+    time.sleep(1)
+    
+    # ถอยหลัง
+    print("Mission 1: Reversing...")
+    tank_drive.on_for_seconds(-40, -40, 2) 
+    
+    # เลี้ยว (สมมติเลี้ยวซ้ายออกจากภารกิจ)
+    print("Mission 1: Turning...")
+    tank_drive.on_for_seconds(-30, 30, 1.0) 
+    
+    # เช็คเส้นหลัง
+    align_back()
+    
+    print("Mission 1 Complete! Moving to Next Session.")
+
+def run_mission_2_logic():
+    """ 
+    สิ่งที่ทำหลังจากเจอสีเขียวใน Session 2:
+    ถอยนิดนึง -> เลี้ยวขวา -> เช็คหลัง -> เดินหน้าหาเส้นดำ -> หยุด
+    """
+    print("--- Mission 2 Found! Executing Sequence ---")
+    tank_drive.off(brake=True)
+    my_sound.beep()
+    
+    # 1. ถอยหลังนิดนึง
+    print("1. Reversing...")
+    tank_drive.on_for_seconds(-30, -30, 2) 
+    
+    # 2. เลี้ยวขวา + เช็คหลัง
+    print("2. Turning Right & Check Back...")
+    # ใช้ฟังก์ชันเลี้ยวขวาที่มี Align back ในตัวเลย
+    standard_turn_right() 
+    
+    # 3. เดินหน้าหาเส้นดำแล้วหยุด
+    print("3. Forward to find Black Line...")
+    tank_drive.on(35, 35)
+    
+    while True:
+        # เงื่อนไข: เจอเส้นดำ (ซ้าย หรือ ขวา)
+        if sensor_left.color == BLACK or sensor_right.color == BLACK:
+            tank_drive.off(brake=True)
+            print("Found Black Line! Session 2 END.")
+            break # จบ Mission และจบ Loop นี้
+        
+def run_mission_3_logic():
+    print("--- Mission 3 Logic ---")
+    tank_drive.off(brake=True)
+    my_sound.beep()
+    time.sleep(1)
+    tank_drive.on_for_seconds(-40, -40, 1) # ถอยนิดเดียวพอ
+    standard_turn_left()
+    align_back()
+    print("MISSION 3 COMPLETE.")
+    
+def run_mission_4_logic():
+    print("--- Start Mission 4 Sequence ---")
+    tank_drive.off(brake=True)
+    my_sound.beep()
+    time.sleep(1) # หยุดทำภารกิจ
+
+    # 1. ถอยหลัง 1 วิ
+    print("1. Reverse 1s")
+    tank_drive.on_for_seconds(-35, -35, 1)
+
+    # 2. เลี้ยวขวา (ตามคำสั่งสเต็ป)
+    print("2. Turn Right")
+    standard_turn_right()
+    align_back()
+
+    # 3. เดินหน้าเช็คดำ -> หยุด
+    drive_until_line()
+    tank_drive.off(brake=True)
+    time.sleep(0.5)
+    tank_drive.on_for_seconds(-40, -40, 2)
+    
+    # 4. ถอยหลัง เช็คดำ (Align Back)
+    print("4. Align Back")
+    align_back()
+
+    # 5. เลี้ยวขวา (อีกครั้ง)
+    print("5. Turn Right")
+    standard_turn_right()
+
+    # 6. เดินหน้า 1 วิ -> หยุด
+    print("6. Forward 1s -> Stop")
+    tank_drive.on_for_seconds(40, 40, 1.0)
+    tank_drive.off(brake=True)
+
+    # 7. เลี้ยวซ้าย เช็คหลัง
+    print("7. Turn Left")
+    standard_turn_left()
+    align_back()
+    # 8. เดินตรงเช็คหน้า -> หยุด (จบเกม)
+    print("8. Forward until Line -> FINISH")
+    drive_until_line()
+    
+    print("MISSION COMPLETE!")
+    tank_drive.off(brake=True)
+    my_sound.speak("Victory")
+    
+# ==========================================
+# เลี้ยวแบบไม่เช็คหลัง
+# ========================================== 
+def fast_turn_left():
+    print("Fast Left (No Check)...")
+    tank_drive.on_for_seconds(-30, -30, 1) # ถอยนิดเดียวพอ
+    tank_drive.on_for_seconds(-40, 40, 0.8)  # เลี้ยวเร็วกว่าปกตินิดนึง
+    tank_drive.off(brake=True)
+    tank_drive.on_for_seconds(40, 40, 0.3)   # ไปต่อเลย
+
+def fast_turn_right():
+    print("Fast Right (No Check)...")
+    tank_drive.on_for_seconds(-30, -30, 1)
+    tank_drive.on_for_seconds(40, -40, 0.8)
+    tank_drive.off(brake=True)
+    tank_drive.on_for_seconds(40, 40, 0.3)
+
+# ==========================================
+# SESSIONS 1
+# ==========================================
+def run_session_1():
+    """ Session 1: เริ่มต้น -> ผ่านจุด X -> ไปจนเจอสีเขียว """
+    print("--- Start Session 1 ---")
+    
+    # ตัวนับแยกใน Session นี้ (เพื่อจัดการทางโค้ง ขวา-ซ้าย-ขวา)
+    intersection_count = 0
+    
+    while True:
+        # เดินหน้าปกติ
+        tank_drive.on(40, 40)
+        
+        # กรณีเจอแยก (เส้นดำ)
+        if sensor_left.color == BLACK and sensor_right.color == BLACK:
+            tank_drive.off(brake=True)
+            intersection_count += 1
+            print("Session 1 - เจอแยกที่:", intersection_count)
+            
+            # --- จัดการการเลี้ยวตามแผนที่ ---
+            if intersection_count == 1:
+                # [จุด X] แยกแรก: ต้องเลี้ยวขวา (แก้จากเดิมที่ผิด)
+                print("แยกที่1: เลี้ยวขวา!")
+                standard_turn_right()
+                
+            elif intersection_count == 2:
+                # แยกที่ 2 (ตามรูปน่าจะต้องเลี้ยวซ้าย)
+                print("แยก 2: เลี้ยวซ้าย!")
+                standard_turn_right()
+                
+            elif intersection_count == 3:
+                # แยกที่ 3 (ตามรูปน่าจะต้องเลี้ยวขวา ก่อนถึงสีเขียว)
+                print("แยก 3: เลี้ยวขวา!")
+                standard_turn_right()
+            
+            elif intersection_count == 4:
+                # แยกที่ 3 (ตามรูปน่าจะต้องเลี้ยวขวา ก่อนถึงสีเขียว)
+                print("แยก 4: เลี้ยวขวา!")
+                standard_turn_left()
+                
+            else:
+                # ถ้ามีแยกอื่นเกินมา ให้เลี้ยวขวาเป็นค่าเริ่มต้น (หรือปรับตามจริง)
+                standard_turn_right()
+            
+        # กรณีเจอสีเขียว (จบ Session 1)
+        elif sensor_left.color == GREEN or sensor_right.color == GREEN:
+            tank_drive.off(brake=True)
+            print("Session 1: เจอเป้าหมายสีเขียว!")
+            
+            # ทำภารกิจ
+            run_mission_1_logic()
+            
+            # จบ Session 1 ออกจากลูปไปทำ Session 2 ต่อ
+            break
+        
+# ==========================================
+# SESSIONS 2
+# ==========================================        
+def run_session_2():
+    print("--- Start Session 2 ---")
+    intersection_count = 0 
+    
+    while True:
+        # อ่านค่าสีไว้ตรวจสอบเงื่อนไขหลัก (แยก/ภารกิจ)
+        l_color = sensor_left.color
+        r_color = sensor_right.color
+        
+        # 1. เงื่อนไขสำคัญที่สุด: เจอแยก (ดำคู่) -> ต้องหยุดและนับแยก
+        if l_color == BLACK and r_color == BLACK:
+            tank_drive.off(brake=True)
+            intersection_count += 1
+            print(f"S2 Intersection: {intersection_count}")
+            
+            if intersection_count == 1:
+                fast_turn_right() 
+            elif intersection_count == 2:
+                standard_turn_right() 
+            else:
+                standard_turn_right()
+        
+        # 2. เงื่อนไขรอง: เจอภารกิจ (สีเขียว) -> ไปทำภารกิจ
+        elif l_color == GREEN or r_color == GREEN:
+            tank_drive.off(brake=True)
+            run_mission_2_logic()
+            break # จบ Session 2
+            
+        # 3. ถ้าไม่มีอะไรสำคัญ -> เรียกฟังก์ชันเดินแก้ทางทำงานต่อ
+        else:
+            drive_with_correction()
+            
+# ==========================================
+# SESSIONS 3
+# ==========================================               
+def run_session_3():
+    print("--- Start Session 3 (Final Fix) ---")
+    
+    # 1. เดินผ่านอุปสรรค -> เดินหาเส้นดำ
+    print("1. Passing Obstacle & Finding Line...")
+    
+    # เดิน Blind 2.5 วิ ให้พ้นกล่อง (ปรับเวลาตรงนี้หน้างานได้ถ้าเดินไม่พ้น/เกิน)
+    tank_drive.on_for_seconds(40, 40, 2.5)
+    
+    # เดินหาเส้นดำจริงๆ
+    drive_until_line()
+    
+    # ถอยนิดนึงจัดระเบียบ (เก็บไว้ได้ 0.2 วิ)
+    tank_drive.on_for_seconds(-30, -30, 0.5)
+
+    # 2. เลี้ยวซ้าย (Standard Turn Left)
+    print("2. Standard Turn Left (Check Back)")
+    # *** แก้ไข: เปลี่ยนจาก right เป็น left ตามที่ตกลงกัน ***
+    standard_turn_right() 
+    
+    # 3. เดินตรงเจอเส้น -> เลี้ยวขวา
+    print("3. Find Line -> Turn Right")
+    drive_until_line()
+    # (ลบถอยหลังออกแล้ว เพราะ standard_turn_right มีถอยให้)
+    standard_turn_right()
+    
+    # 4. เดินนิดนึง -> หยุด
+    print("4. Walk -> Stop")
+    # เดินหน้า 3 วินาที (ระวังยาวไปนะครับ ถ้าพื้นที่แคบให้ลดเหลือ 1-1.5)
+    tank_drive.on_for_seconds(40, 40, 3) 
+    tank_drive.off(brake=True)
+    time.sleep(1)
+    
+    # 5. เลี้ยวซ้ายเช็คหลัง
+    print("5. Standard Turn Left")
+    standard_turn_left()
+    
+    # 6. เดินเจอเส้น -> หยุด -> เลี้ยวซ้ายเร็ว
+    print("6. Find Line -> Fast Left")
+    drive_until_line() 
+    # (ลบถอยหลังออกแล้ว เพราะ fast_turn_left มีถอยให้)
+    
+    # 7. เลี้ยวซ้าย (Fast Turn)
+    print("7. Fast Turn Left")
+    fast_turn_left() 
+    
+    # 8. เดินเจอเส้น -> หยุด -> เลี้ยวซ้ายเข้าภารกิจ
+    print("8. Find Line -> Turn Left")
+    drive_until_line()
+    # (ลบถอยหลังออกแล้ว เพราะ standard_turn_left มีถอยให้)
+    
+    # 9. เลี้ยวซ้าย -> เดินหาเขียว
+    print("9. Turn Left -> Find Green")
+    standard_turn_left()
+    
+    print("Seeking Green Target...")
+    tank_drive.on(35, 35)
+    while True:
+        if sensor_left.color == GREEN or sensor_right.color == GREEN:
+            tank_drive.off(brake=True)
+            print("Found Green! Executing Logic...")
+            run_mission_3_logic()
+            break
+# ==========================================
+# SESSIONS 4
+# ========================================== 
+def run_session_4():
+    print("--- Start Session 4: Return to Base ---")
+    
+    # 1. วิ่งตรงเช็คสีเขียว (ต้องมี Loop)
+    print("Driving to find Green...")
+    tank_drive.on(40, 40)
+    
+    while True:
+        # ถ้าเจอสีเขียว ให้หยุดและทำภารกิจ
+        if sensor_left.color == GREEN or sensor_right.color == GREEN:
+            tank_drive.off(brake=True)
+            print("Found Green! Executing Logic...")
+            
+            # เรียกฟังก์ชันท่าจบที่เราเขียนไว้ข้างบน
+            run_mission_4_logic()
+            break
+    
+# ==========================================
+# MAIN EXECUTION (สั่งงานเรียงลำดับ)
+
+
+
+
+
+# ==========================================
+if __name__ == "__main__":
+    
+    run_session_1()
+    run_session_2()
+    run_session_3()
+    run_session_4()
+    
+    print("All Missions Complete!")
+    my_sound.speak("Hee kuy Tad")

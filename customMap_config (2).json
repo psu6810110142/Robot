@@ -1,0 +1,33 @@
+{
+  "worldName": "custom",
+  "options": {
+    "imageURL": "",
+    "groundType": "box",
+    "length": 100,
+    "width": 100,
+    "uScale": 1,
+    "vScale": 1,
+    "imageScale": 4,
+    "timer": "none",
+    "timerDuration": 60,
+    "timerEnd": "continue",
+    "wall": true,
+    "wallHeight": 10,
+    "wallThickness": 1,
+    "wallColor": "#1A1A1A",
+    "groundFriction": 1,
+    "wallFriction": 0.1,
+    "groundRestitution": 0,
+    "wallRestitution": 0.1,
+    "restartAnimationOnRun": false,
+    "objects": [],
+    "startPos": "center",
+    "startPosXYZStr": "-155.6,-71",
+    "startRotStr": "-138.6",
+    "startPosXYZ": null,
+    "startRot": null,
+    "arenaStartPosXYZ": null,
+    "arenaStartRot": null,
+    "imageFile": "blob:https://gears.aposteriori.com.sg/99583779-599c-4a47-98b6-e33c9862663c"
+  }
+}

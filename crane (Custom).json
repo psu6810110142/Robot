@@ -1,0 +1,281 @@
+{
+  "name": "crane (Custom)",
+  "shortDescription": "crane (Custom)",
+  "longDescription": "<p>Custom robot created in the configurator.</p>",
+  "longerDescription": "<h3>#robot-dimensions#</h3><ul><li>#robot-wheelDiameter#: 4.8 cm</li><li>#robot-wheelSpacing#: 15.9 cm</li></ul><h3>#robot-actuators#</h3><ul><li>#robot-port# A : #robot-leftWheel#</li><li>#robot-port# B : #robot-rightWheel#</li><li>#robot-port# C : #robot-swivel#</li></ul><h3>#robot-sensors#</h3><ul><li>#robot-port# 1 : #robot-color#</li><li>#robot-port# 2 : #robot-color#</li><li>#robot-port# 3 : #robot-color#</li><li>#robot-port# 4 : #robot-color#</li></ul>",
+  "thumbnail": "",
+  "bodyHeight": 4,
+  "bodyWidth": 14,
+  "bodyLength": 16,
+  "wheels": true,
+  "wheelDiameter": 4.8,
+  "wheelWidth": 1.7,
+  "wheelToBodyOffset": 0.1,
+  "bodyEdgeToWheelCenterY": 0.4,
+  "bodyEdgeToWheelCenterZ": 4.4,
+  "bodyMass": 1000,
+  "wheelMass": 200,
+  "casterMass": 0,
+  "caster": true,
+  "wheelFriction": 10,
+  "bodyFriction": 0,
+  "casterFriction": 0,
+  "color": "#ffffffff",
+  "imageType": "all",
+  "imageURL": "",
+  "components": [
+    {
+      "type": "ColorSensor",
+      "position": [
+        -5,
+        -0.5,
+        9.1
+      ],
+      "rotation": [
+        1.5707963267948966,
+        0,
+        0
+      ],
+      "options": {}
+    },
+    {
+      "type": "ColorSensor",
+      "position": [
+        5,
+        -0.5,
+        9.1
+      ],
+      "rotation": [
+        1.5707963267948966,
+        0,
+        0
+      ],
+      "options": {}
+    },
+    {
+      "type": "Box",
+      "position": [
+        -4.5,
+        4,
+        -5.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "options": {
+        "height": 4,
+        "width": 1,
+        "depth": 1
+      }
+    },
+    {
+      "type": "Box",
+      "position": [
+        4.5,
+        4,
+        -5.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "options": {
+        "height": 4,
+        "width": 1,
+        "depth": 1
+      }
+    },
+    {
+      "type": "Box",
+      "position": [
+        -4.5,
+        4,
+        5.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "options": {
+        "height": 4,
+        "width": 1,
+        "depth": 1,
+        "color": "#a3cf0df9",
+        "imageType": "repeat",
+        "imageURL": "",
+        "uScale": 1,
+        "vScale": 1
+      }
+    },
+    {
+      "type": "Box",
+      "position": [
+        4.5,
+        4,
+        5.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "options": {
+        "height": 4,
+        "width": 1,
+        "depth": 1,
+        "color": "A3CF0D",
+        "imageType": "repeat",
+        "imageURL": "",
+        "uScale": 1,
+        "vScale": 1
+      }
+    },
+    {
+      "type": "Box",
+      "position": [
+        0,
+        6,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "options": {
+        "height": 1,
+        "width": 10,
+        "depth": 12,
+        "color": "A3CF0D",
+        "imageType": "repeat",
+        "imageURL": "",
+        "uScale": 1,
+        "vScale": 1
+      }
+    },
+    {
+      "type": "Box",
+      "position": [
+        0,
+        7,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "options": {
+        "height": 1,
+        "width": 4,
+        "depth": 5,
+        "color": "#377cd7ff",
+        "imageType": "repeat",
+        "imageURL": "",
+        "uScale": 1,
+        "vScale": 1
+      }
+    },
+    {
+      "type": "Box",
+      "position": [
+        0,
+        2.5,
+        -2
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "options": {
+        "height": 1,
+        "width": 4,
+        "depth": 5,
+        "color": "#ce0d0dff",
+        "imageType": "repeat",
+        "imageURL": "",
+        "uScale": 1,
+        "vScale": 1
+      }
+    },
+    {
+      "type": "ColorSensor",
+      "position": [
+        -5,
+        -0.5,
+        -9.1
+      ],
+      "rotation": [
+        1.5707963267948966,
+        0,
+        0
+      ],
+      "options": {}
+    },
+    {
+      "type": "ColorSensor",
+      "position": [
+        5,
+        -0.5,
+        -9.1
+      ],
+      "rotation": [
+        1.5707963267948966,
+        0,
+        0
+      ],
+      "options": {}
+    },
+    {
+      "type": "Box",
+      "position": [
+        0,
+        1,
+        9.1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "options": {
+        "height": 6,
+        "width": 2,
+        "depth": 2,
+        "color": "#531eccff",
+        "imageType": "repeat",
+        "imageURL": "",
+        "uScale": 1,
+        "vScale": 1
+      }
+    },
+    {
+      "type": "SwivelActuator",
+      "position": [
+        0,
+        5,
+        10
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "components": [],
+      "options": {
+        "mass": 100,
+        "baseColor": "A39C0D",
+        "platformColor": "808080",
+        "width": 3,
+        "restitution": 0.4,
+        "friction": 0.1
+      }
+    }
+  ],
+  "options": {}
+}
