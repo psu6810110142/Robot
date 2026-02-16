@@ -1,0 +1,64 @@
+#include <Arduino.h>
+
+// มอเตอร์ซ้าย
+const int IN1 = 4;
+const int IN2 = 5;
+// มอเตอร์ขวา
+const int IN3 = 6;
+const int IN4 = 7;
+
+// ปรับความเร็วทดสอบ
+int speed = 100; 
+
+void setMotor(int speedL, int speedR) {
+  // --- มอเตอร์ซ้าย ---
+  if (speedL > 0) {
+    digitalWrite(IN1, LOW); analogWrite(IN2, speedL);
+  } else {
+    // สูตรแก้ถอยหลังแรง: 255 + (-50) = 205 (High Duty Cycle on LOW side = Slow)
+    digitalWrite(IN1, HIGH); analogWrite(IN2, 255 + speedL);
+  }
+
+  // --- มอเตอร์ขวา ---
+  if (speedR > 0) {
+    digitalWrite(IN4, LOW); analogWrite(IN3, speedR);
+  } else {
+    digitalWrite(IN4, HIGH); analogWrite(IN3, 255 + speedR);
+  }
+}
+
+// ⚠️ ปรับให้ FD รับค่าบวก, BK รับค่าลบ (เพื่อรองรับ PID ในอนาคต)
+void FD(int s) { setMotor(s, s); }      // เดินหน้า
+void BK(int s) { setMotor(-s, -s); }    // ถอยหลัง
+void SL(int s) { setMotor(-s, s); }     // หมุนซ้าย
+void SR(int s) { setMotor(s, -s); }     // หมุนขวา
+void AO()      { setMotor(0, 0); }      // หยุด
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(IN1, OUTPUT); pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT); pinMode(IN4, OUTPUT);
+  
+  Serial.println("--- CHECK DIRECTION ---");
+  delay(3000);
+}
+
+void loop() {
+  Serial.println("Action: FORWARD (ต้องเดินหน้า)");
+  FD(speed);
+  delay(2000);
+
+  AO(); delay(1000);
+
+  Serial.println("Action: BACKWARD (ต้องถอยหลัง - นิ่มๆ)");
+  BK(speed);
+  delay(2000);
+
+  AO(); 
+  Serial.println("--- STOP ---");
+  delay(3000);
+
+  SR(speed); delay(1000);
+  AO(); delay(2000);
+  SL(speed); delay(1000);
+}
